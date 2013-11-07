@@ -9,6 +9,7 @@ using System.Collections.Specialized;
 using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Threading;
+using System.Reactive.Subjects;
 
 namespace ReactiveUI.Cocoa
 {
@@ -87,6 +88,8 @@ namespace ReactiveUI.Cocoa
 
         readonly UITableView tableView;
         readonly List<TableSectionInformation> sectionInformation;
+        readonly Subject<object> elementSelected = new Subject<object>();
+
         bool tableViewReloadInProgress = false;
 
         public ReactiveTableViewSource(UITableView tableView, IReactiveNotifyCollectionChanged collection, string cellKey, float sizeHint, Action<UITableViewCell> initializeCellAction = null)
@@ -180,6 +183,13 @@ namespace ReactiveUI.Cocoa
             }
         }
 
+        /// <summary>
+        /// Gets an IObservable that is a hook to <see cref="RowSelected"/> calls.
+        /// </summary>
+        public IObservable<object> ElementSelected {
+            get { return elementSelected; }
+        }
+
         public override UITableViewCell GetCell(UITableView tableView, NSIndexPath indexPath)
         {
             var sectionInfo = sectionInformation[indexPath.Section];
@@ -221,6 +231,13 @@ namespace ReactiveUI.Cocoa
         public override bool CanMoveRow(UITableView tableView, NSIndexPath indexPath)
         {
             return false;
+        }
+
+        public override void RowSelected(UITableView tableView, NSIndexPath indexPath)
+        {
+            var sectionInfo = sectionInformation[indexPath.Section];
+            var element = ((IList)sectionInfo.Collection)[indexPath.Row];
+            elementSelected.OnNext(element);
         }
 
         public new void Dispose()
